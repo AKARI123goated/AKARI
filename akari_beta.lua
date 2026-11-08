@@ -1,3 +1,32 @@
+-- Panda Auth - PUSL-V4
+-- Paste this at the very top of your script.
+
+local PUSL = loadstring(game:HttpGet("https://secure.pandauth.com/pv4/lib"))()
+if not PUSL or type(PUSL.configure) ~= "function" then
+    return warn("[Panda] Library failed to initialize.")
+end
+
+PUSL.configure({
+    serviceId = "akari",
+})
+
+local key = "USER_KEY_HERE" -- replace with your own key input
+local result = PUSL.validate(key)
+
+if not result.success then
+    warn("[Panda] Get a key: " .. PUSL.getKeyUrl())
+    return
+end
+
+print("[Panda] Authenticated. Premium:", result.isPremium)
+
+-- Your protected code goes below this line.
+
+
+
+
+
+
 if getgenv().KiciaRebuild and getgenv().KiciaRebuild.Unload then
     pcall(getgenv().KiciaRebuild.Unload)
 end
@@ -1997,7 +2026,7 @@ return y.c
 end
 end
 do -- z
-local function fn35()return{Accent=Color3.fromRGB(255,60,160),Outline=Color3.fromRGB(38,21,32),Background=Color3.fromRGB(7,3,6),ElementBackground=Color3.fromRGB(24,13,20),TabButtonSelected=Color3.fromRGB(32,15,26),Unselected=Color3.fromRGB(150,108,130),TextColor=Color3.fromRGB(255,238,246),ToggleCircleUnselected=Color3.fromRGB(120,90,105),ToggleBackgroundUnselected=Color3.fromRGB(40,23,34),GradientTop=Color3.fromRGB(15,8,13),GradientMid=Color3.fromRGB(11,5,9),GradientDark=Color3.fromRGB(7,3,6),GradientDeep=Color3.fromRGB(4,1,3),TabHighlight=Color3.fromRGB(32,15,26),TabShadow=Color3.fromRGB(40,23,34)};end
+local function fn35()return{Accent=Color3.fromRGB(77,127,208),Outline=Color3.fromRGB(58,58,58),Background=Color3.fromRGB(15,15,15),ElementBackground=Color3.fromRGB(26,26,26),TabButtonSelected=Color3.fromRGB(26,26,26),Unselected=Color3.fromRGB(140,140,140),TextColor=Color3.fromRGB(228,228,228),ToggleCircleUnselected=Color3.fromRGB(120,120,120),ToggleBackgroundUnselected=Color3.fromRGB(40,40,40),GradientTop=Color3.fromRGB(20,20,20),GradientMid=Color3.fromRGB(16,16,16),GradientDark=Color3.fromRGB(12,12,12),GradientDeep=Color3.fromRGB(9,9,9),TabHighlight=Color3.fromRGB(26,26,26),TabShadow=Color3.fromRGB(40,40,40)};end
 
 tbl17.z = function()
 local z = tbl17.cache.z
@@ -10055,7 +10084,7 @@ arg2:Bind(titleRow, "BackgroundColor3", "ElementBackground")
 titleRow.Parent = frame
 local uiGradientH = Instance.new("UIGradient")
 uiGradientH.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 60, 160)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(77, 127, 208)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 6, 12)),
 })
 uiGradientH.Transparency = NumberSequence.new({
@@ -15592,7 +15621,7 @@ accentBar.Size = UDim2.fromOffset(3, 18)
 accentBar.AnchorPoint = Vector2.new(0, 0.5)
 accentBar.Position = UDim2.new(0, 14, 0.5, 0)
 accentBar.BorderSizePixel = 0
-accentBar.BackgroundColor3 = Color3.fromRGB(255, 60, 160)
+accentBar.BackgroundColor3 = Color3.fromRGB(77, 127, 208)
 local accentBarCorner = Instance.new("UICorner")
 accentBarCorner.CornerRadius = UDim.new(0, 2)
 accentBarCorner.Parent = accentBar
@@ -16069,7 +16098,7 @@ childBtn.Parent = childHolder
 local rowBg = Instance.new("Frame")
 rowBg.Size = UDim2.fromScale(1, 1)
 rowBg.BorderSizePixel = 0
-rowBg.BackgroundColor3 = Color3.fromRGB(255, 60, 160)
+rowBg.BackgroundColor3 = Color3.fromRGB(77, 127, 208)
 rowBg.BackgroundTransparency = 0.82
 rowBg.Visible = false
 rowBg.ZIndex = 0
@@ -16080,7 +16109,7 @@ childBar.Size = UDim2.new(0, 3, 0.55, 0)
 childBar.AnchorPoint = Vector2.new(0, 0.5)
 childBar.Position = UDim2.new(0, 0, 0.5, 0)
 childBar.BorderSizePixel = 0
-childBar.BackgroundColor3 = Color3.fromRGB(255, 60, 160)
+childBar.BackgroundColor3 = Color3.fromRGB(77, 127, 208)
 childBar.Visible = false
 local childBarCorner = Instance.new("UICorner")
 childBarCorner.CornerRadius = UDim.new(1, 0)
@@ -16985,11 +17014,11 @@ do
 	petalCanvas.Parent = frame
 	local PETAL_COUNT = 42
 	local PETAL_TINTS = {
-		Color3.fromRGB(255, 182, 213),
-		Color3.fromRGB(255, 140, 190),
-		Color3.fromRGB(255, 105, 170),
-		Color3.fromRGB(255, 60, 160),
-		Color3.fromRGB(255, 205, 228),
+		Color3.fromRGB(150, 190, 240),
+		Color3.fromRGB(110, 160, 220),
+		Color3.fromRGB(77, 127, 208),
+		Color3.fromRGB(180, 210, 245),
+		Color3.fromRGB(60, 100, 170),
 	}
 	local petals = {}
 	local function makePetal(randomY)
@@ -20231,7 +20260,7 @@ return bi.c
 end
 end
 do -- bj
-local function fn35() tbl17 .a5();return{ColorAnimations={Entries= tbl17 .i().atomic({})},Notifications={Enabled=true,Side="TopLeft",Size=15,Font="Inconsolata",Offset=0},Theme={Accent=Color3.fromRGB(255,60,160),Outline=Color3.fromRGB(38,21,32),Background=Color3.fromRGB(7,3,6),ElementBackground=Color3.fromRGB(24,13,20),TabButtonSelected=Color3.fromRGB(32,15,26),Unselected=Color3.fromRGB(150,108,130),TextColor=Color3.fromRGB(255,238,246),ToggleCircleUnselected=Color3.fromRGB(120,90,105),ToggleBackgroundUnselected=Color3.fromRGB(40,23,34)},AutoExecuteScript={Enabled=false}};end
+local function fn35() tbl17 .a5();return{ColorAnimations={Entries= tbl17 .i().atomic({})},Notifications={Enabled=true,Side="TopLeft",Size=15,Font="Inconsolata",Offset=0},Theme={Accent=Color3.fromRGB(77,127,208),Outline=Color3.fromRGB(58,58,58),Background=Color3.fromRGB(15,15,15),ElementBackground=Color3.fromRGB(26,26,26),TabButtonSelected=Color3.fromRGB(26,26,26),Unselected=Color3.fromRGB(140,140,140),TextColor=Color3.fromRGB(228,228,228),ToggleCircleUnselected=Color3.fromRGB(120,120,120),ToggleBackgroundUnselected=Color3.fromRGB(40,40,40)},AutoExecuteScript={Enabled=false}};end
 
 tbl17.bj = function()
 local bj = tbl17.cache.bj
@@ -67328,41 +67357,41 @@ local function hook(sig, fn)
 	return c
 end
 
-local DEFAULT_ACCENT = Color3.fromRGB(255, 60, 160)
+local DEFAULT_ACCENT = Color3.fromRGB(77, 127, 208)
 
 local function shade(c, f)
 	return Color3.new(math.clamp(c.R * f, 0, 1), math.clamp(c.G * f, 0, 1), math.clamp(c.B * f, 0, 1))
 end
 local T = {
 	Background   = Color3.fromRGB(15, 15, 15),
-	Sidebar      = Color3.fromRGB(14, 14, 14),
-	Main         = Color3.fromRGB(14, 14, 14),
-	Container    = Color3.fromRGB(10, 10, 10),
-	Footer       = Color3.fromRGB(14, 14, 14),
-	Card         = Color3.fromRGB(18, 18, 18),
-	Element      = Color3.fromRGB(28, 28, 28),
-	ElementHover = Color3.fromRGB(36, 36, 36),
-	Track        = Color3.fromRGB(28, 28, 28),
-	Line         = Color3.fromRGB(40, 40, 40),
-	LineHi       = Color3.fromRGB(64, 64, 64),
+	Sidebar      = Color3.fromRGB(13, 13, 13),
+	Main         = Color3.fromRGB(13, 13, 13),
+	Container    = Color3.fromRGB(9, 9, 9),
+	Footer       = Color3.fromRGB(13, 13, 13),
+	Card         = Color3.fromRGB(12, 12, 12),
+	Element      = Color3.fromRGB(26, 26, 26),
+	ElementHover = Color3.fromRGB(34, 34, 34),
+	Track        = Color3.fromRGB(26, 26, 26),
+	Line         = Color3.fromRGB(58, 58, 58),
+	LineHi       = Color3.fromRGB(92, 92, 92),
 	LineDark     = Color3.fromRGB(0, 0, 0),
 	Accent       = DEFAULT_ACCENT,
 	AccentDim    = shade(DEFAULT_ACCENT, 0.55),
-	Font         = Color3.fromRGB(255, 255, 255),
-	FontDim      = Color3.fromRGB(165, 165, 165),
-	FontSub      = Color3.fromRGB(118, 118, 118),
-	Red          = Color3.fromRGB(255, 50, 50),
+	Font         = Color3.fromRGB(228, 228, 228),
+	FontDim      = Color3.fromRGB(170, 170, 170),
+	FontSub      = Color3.fromRGB(120, 120, 120),
+	Red          = Color3.fromRGB(255, 70, 70),
 	Green        = Color3.fromRGB(72, 199, 129),
 	Amber        = Color3.fromRGB(230, 166, 60),
 	White        = Color3.fromRGB(255, 255, 255),
 
-	Glow         = Color3.fromRGB(245, 232, 240),
-	CtlEdge      = Color3.fromRGB(34, 34, 34),
+	Glow         = Color3.fromRGB(120, 160, 220),
+	CtlEdge      = Color3.fromRGB(58, 58, 58),
 }
 
-local RADIUS = 3
+local RADIUS = 0
 
-local F_TAB   = Enum.Font.GothamMedium
+local F_TAB   = Enum.Font.Code
 local F_TITLE = Enum.Font.Code
 local F_GROUP = Enum.Font.Code
 local F_BODY  = Enum.Font.Code
@@ -67497,14 +67526,15 @@ end
 
 function corner(r, p)
 	local uc = Instance.new("UICorner")
-	uc.CornerRadius = UDim.new(0, r or 6)
+	--  Square-everything skin: the reference UI has no rounded corners at all.
+	uc.CornerRadius = UDim.new(0, 0)
 	uc.Parent = p
 	THEME.add(uc, "UICorner")
 	return uc
 end
 function fullRound(p)
 	local uc = Instance.new("UICorner")
-	uc.CornerRadius = UDim.new(1, 0)
+	uc.CornerRadius = UDim.new(0, 0)
 	uc.Parent = p
 	return uc
 end
@@ -68160,7 +68190,7 @@ local function brandGlyph(ch, nine)
 	end
 
 	if nine then
-		local cols = { Color3.fromRGB(255, 120, 200), Color3.fromRGB(255, 60, 160) }
+		local cols = { Color3.fromRGB(255, 120, 200), Color3.fromRGB(77, 127, 208) }
 		for k = 2, 1, -1 do
 
 			local gl = lbl(3 - k, Color3.fromRGB(46, 12, 30))
@@ -70141,6 +70171,7 @@ function createWindow(opts)
 		Position = UDim2.new(0, sideW, 0, 0),
 		Size = UDim2.new(0, 1, 1, -(BOT_H + 1)),
 		ZIndex = 12,
+		Visible = false,
 	}, Main)
 
 	local TitleArea = create("Frame", {
@@ -70425,34 +70456,54 @@ function createWindow(opts)
 		ClipsDescendants = true,
 	}, Main)
 
+	--  Horizontal boxed tab strip: tabs run left→right across the top of the body
+	--  and the page sits underneath, matching the flat reference layout.
+	local TAB_H = IS_MOBILE and 36 or 32
+	local TAB_W = IS_MOBILE and 88 or 96
+
 	local Sidebar = create("Frame", {
 		Name = "Sidebar",
 		BackgroundColor3 = T.Sidebar,
 		BorderSizePixel = 0,
-		Size = UDim2.new(0, sideW, 1, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, TAB_H),
 		ZIndex = 11,
 		ClipsDescendants = true,
 	}, Body)
+	--  Hairline under the strip — the reference separates every band with 1px.
+	create("Frame", {
+		Name = "TabStripLine",
+		BackgroundColor3 = T.Line,
+		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 1),
+		ZIndex = 13,
+	}, Sidebar)
 
 	local TabList = create("ScrollingFrame", {
 		Active = true,
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = IS_MOBILE and 3 or 0,
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ScrollBarThickness = IS_MOBILE and 2 or 0,
 		ScrollBarImageColor3 = T.LineHi,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollingDirection = Enum.ScrollingDirection.X,
 		BorderSizePixel = 0,
 		ZIndex = 12,
-		TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png",
-		BottomImage = "rbxasset://textures/ui/Scroll/scroll-middle.png",
+		LeftImage = "rbxasset://textures/ui/Scroll/scroll-left.png",
+		RightImage = "rbxasset://textures/ui/Scroll/scroll-right.png",
 		ClipsDescendants = true,
 	}, Sidebar)
-	local tabListLayout = create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3) }, TabList)
+	local tabListLayout = create("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 0),
+	}, TabList)
 	local tabListPad = create("UIPadding", {
-		PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
-		PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 0), PaddingRight = UDim.new(0, 0),
+		PaddingTop = UDim.new(0, 0), PaddingBottom = UDim.new(0, 0),
 	}, TabList)
 
 wheelScrollX(TabList, function() return false end)
@@ -70461,8 +70512,8 @@ wheelScrollX(TabList, function() return false end)
 		Name = "Content",
 		BackgroundColor3 = T.Container,
 		BorderSizePixel = 0,
-		Position = UDim2.new(0, sideW + 1, 0, 0),
-		Size = UDim2.new(1, -(sideW + 1), 1, 0),
+		Position = UDim2.new(0, 0, 0, TAB_H + 1),
+		Size = UDim2.new(1, 0, 1, -(TAB_H + 1)),
 		ZIndex = 10,
 		ClipsDescendants = true,
 	}, Body)
@@ -70665,14 +70716,11 @@ wheelScrollX(TabList, function() return false end)
 		sideW = w
 		win._sideW = w
 		if win._lay and win._lay.active then win._lay.schedule() return w end
-		VDivider.Position = UDim2.new(0, w, 0, 0)
+		--  Tabs are a horizontal strip across the top now, so the sidebar width
+		--  only drives the header brand block and the search field beside it.
 		TitleArea.Size = UDim2.new(0, w, 1, 0)
 		SearchWrap.Position = UDim2.new(0, w + 1 + PAD, 0.5, 0)
 		SearchWrap.Size = UDim2.new(1, -(w + 1 + PAD + 6 + SEARCH_H + PAD), 0, SEARCH_H)
-		Sidebar.Size = UDim2.new(0, w, 1, 0)
-		Content.Position = UDim2.new(0, w + 1, 0, 0)
-		Content.Size = UDim2.new(1, -(w + 1), 1, 0)
-		if SideGrip then SideGrip.Position = UDim2.new(0, w - SideGrip.Size.X.Offset / 2, 0, TOP_H + 1) end
 		win._sideW = w
 		return w
 	end
@@ -70693,6 +70741,7 @@ wheelScrollX(TabList, function() return false end)
 			BorderSizePixel = 0,
 			AutoButtonColor = false,
 			Text = "",
+			Visible = false,
 			Position = UDim2.new(0, sideW - GRIP_W / 2, 0, TOP_H + 1),
 			Size = UDim2.new(0, GRIP_W, 1, -(TOP_H + 1 + BOT_H + 1)),
 			ZIndex = 40,
@@ -70860,6 +70909,7 @@ wheelScrollX(TabList, function() return false end)
 	local firstTab = true
 	local tabCount = 0
 	local tabGlow = {}
+	local tabEdge = {}
 
 	local HALOS = { { 2, 0.74 }, { 4, 0.86 }, { 7, 0.94 } }
 	local NAV_GLOW_IMAGE = "rbxassetid://18245826428"
@@ -70984,6 +71034,8 @@ wheelScrollX(TabList, function() return false end)
 		if win._lay and win._lay.active and win._lay.paintTab(row, on) then return end
 		local g = tabGlow[row]
 		if g then g.select(on) end
+		local e = tabEdge[row]
+		if e then tw(e, TI_HOVER, { Color = on and T.Accent or T.Line }) end
 		local l = row:FindFirstChild("_lbl")
 		if l then tw(l, TI_HOVER, { TextColor3 = on and T.Font or T.FontSub }) end
 	end
@@ -71588,7 +71640,7 @@ wheelScrollX(TabList, function() return false end)
 		local TabRow = create("TextButton", {
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Size = UDim2.new(1, 0, 0, IS_MOBILE and 32 or 30),
+			Size = UDim2.new(0, TAB_W, 1, 0),
 			Text = "",
 			AutoButtonColor = false,
 			ClipsDescendants = false,
@@ -71596,6 +71648,8 @@ wheelScrollX(TabList, function() return false end)
 			LayoutOrder = (isSettings and 9999 or tabCount),
 		}, TabList)
 		corner(RADIUS, TabRow)
+		--  Boxed tab: 1px edge on every tab, accent-filled when selected.
+		tabEdge[TabRow] = stroke(1, T.Line, TabRow)
 
 		tabGlow[TabRow] = navGlow(TabRow, RADIUS, 13, 16, false, "tab")
 
@@ -72049,28 +72103,28 @@ local function newGroupbox(parent, title, order, gIcon)
 	local HEAD_H = 32
 	local titleLbl = create("TextLabel", {
 		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 11, 0, 0),
-		Size = UDim2.new(1, -22, 0, HEAD_H),
+		Position = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, HEAD_H),
 		Font = F_GROUP,
 		Text = title,
 		TextColor3 = T.Font,
 		TextSize = TS_GROUP,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 12,
 	}, inner)
 	fontRole[titleLbl] = "group"
 
 	local divider = create("Frame", {
-		BackgroundColor3 = T.Line,
+		BackgroundColor3 = T.Accent,
 		BorderSizePixel = 0,
 		Position = UDim2.new(0, 0, 0, HEAD_H),
 		Size = UDim2.new(1, 0, 0, 1),
 		ZIndex = 12,
 	}, inner)
 	local glowLine = create("Frame", {
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.15,
+		BackgroundColor3 = T.Accent,
+		BackgroundTransparency = 0.55,
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 1),
 		ZIndex = 13,
@@ -72084,8 +72138,8 @@ local function newGroupbox(parent, title, order, gIcon)
 		}),
 	}, glowLine), "grad", "ab", glowLine)
 	local glowHalo = create("Frame", {
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.8,
+		BackgroundColor3 = T.Accent,
+		BackgroundTransparency = 0.85,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 0, 0),
@@ -72154,7 +72208,7 @@ local function newGroupbox(parent, title, order, gIcon)
 	function S.addToggle(text, def, cb, ord, extra)
 		local st = def or false
 		local ROW_H = IS_MOBILE and 28 or 20
-		local SW, SH = (IS_MOBILE and 36 or 30), (IS_MOBILE and 20 or 16)
+		local SW, SH = (IS_MOBILE and 16 or 12), (IS_MOBILE and 16 or 12)
 		local KN = SH - 6
 
 		local Row = create("TextButton", {
@@ -72169,7 +72223,8 @@ local function newGroupbox(parent, title, order, gIcon)
 
 		local Lbl = create("TextLabel", {
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, -(SW + 10), 1, 0),
+			Position = UDim2.new(0, SW + 9, 0, 0),
+			Size = UDim2.new(1, -(SW + 9), 1, 0),
 			Font = F_BODY,
 			Text = text,
 			TextColor3 = st and T.Font or T.FontDim,
@@ -72180,26 +72235,26 @@ local function newGroupbox(parent, title, order, gIcon)
 		}, Row)
 
 		local Track = create("Frame", {
-			AnchorPoint = Vector2.new(1, 0.5),
+			AnchorPoint = Vector2.new(0, 0.5),
 			BackgroundColor3 = T.Track,
 			BorderSizePixel = 0,
-			Position = UDim2.new(1, 0, 0.5, 0),
+			Position = UDim2.new(0, 0, 0.5, 0),
 			Size = UDim2.fromOffset(SW, SH),
 			ZIndex = 13,
 		}, Row)
 		fullRound(Track)
 		local Edge = stroke(1, T.Line, Track)
-		Edge.Transparency = st and 1 or 0
+		Edge.Transparency = 0
 
 		local On = create("Frame", {
-			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundColor3 = T.Accent,
 			BackgroundTransparency = st and 0 or 1,
 			BorderSizePixel = 0,
 			Size = UDim2.fromScale(1, 1),
 			ZIndex = 14,
 		}, Track)
 		fullRound(On)
-		regGrad(create("UIGradient", {}, On), "ab")
+		On.BackgroundTransparency = st and 0 or 1
 
 		local KNOB_OFF = UDim2.new(0, 3, 0.5, 0)
 		local KNOB_ON = UDim2.new(1, -(KN + 3), 0.5, 0)
@@ -72209,6 +72264,7 @@ local function newGroupbox(parent, title, order, gIcon)
 			AnchorPoint = Vector2.new(0, 0.5),
 			BackgroundColor3 = st and T.White or T.FontSub,
 			BorderSizePixel = 0,
+			Visible = false,
 			Position = st and KNOB_ON or KNOB_OFF,
 			Size = UDim2.fromOffset(KN, KN),
 			ZIndex = 15,
@@ -72219,6 +72275,7 @@ local function newGroupbox(parent, title, order, gIcon)
 			BackgroundTransparency = 1,
 			Image = "rbxassetid://18245826428",
 			ImageTransparency = st and 0.7 or 1,
+			Visible = false,
 			ScaleType = Enum.ScaleType.Slice,
 			SliceCenter = Rect.new(21, 21, 79, 79),
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -72243,7 +72300,7 @@ local function newGroupbox(parent, title, order, gIcon)
 			local au = curStyle == "Aurelia"
 			local goals = {
 				{ On, { BackgroundTransparency = st and 0 or 1 } },
-				{ Edge, { Transparency = (st or vp) and 1 or 0, Color = hovered and T.LineHi or T.Line } },
+				{ Edge, { Transparency = 0, Color = st and T.Accent or (hovered and T.LineHi or T.Line) } },
 				{ Knob, { Position = st and KNOB_ON or KNOB_OFF, BackgroundColor3 = vp and T.Main or (au and (st and T.Main or Color3.fromRGB(238, 238, 238)) or (st and T.White or (hovered and T.FontDim or T.FontSub))) } },
 				{ Lbl, { TextColor3 = vp and T.FontDim or ((st or hovered) and T.Font or T.FontDim) } },
 				{ SwGlow, { ImageTransparency = (st and curStyle ~= "Linoria" and not vp and GLOW.on("check")) and 0.7 or 1 } },
@@ -72475,7 +72532,7 @@ local function newGroupbox(parent, title, order, gIcon)
 		}, F)
 
 		local TrackOuter = create("Frame", {
-			BackgroundColor3 = T.LineDark,
+			BackgroundColor3 = T.Line,
 			BorderSizePixel = 0,
 			Position = UDim2.new(0, 0, 0, 22),
 			Size = UDim2.new(1, 0, 0, TRACK_H),
@@ -72496,20 +72553,12 @@ local function newGroupbox(parent, title, order, gIcon)
 		local ratio0 = (iMx > iMn) and (ival - iMn) / (iMx - iMn) or 0
 
 		local Fill = create("Frame", {
-			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundColor3 = T.Accent,
 			BorderSizePixel = 0,
 			Size = UDim2.new(0, 0, 1, 0),
 			ZIndex = 15,
 		}, Track)
-		regGrad(create("UIGradient", {
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.6),
-				NumberSequenceKeypoint.new(0.22, 0.12),
-				NumberSequenceKeypoint.new(0.5, 0),
-				NumberSequenceKeypoint.new(0.85, 0.08),
-				NumberSequenceKeypoint.new(1, 0.3),
-			}),
-		}, Fill), "aba")
+		regAccent(Fill, "BackgroundColor3")
 
 		local Hit = create("TextButton", {
 			BackgroundTransparency = 1,
@@ -76575,7 +76624,7 @@ pcall(function()
     btn.BackgroundColor3   = Color3.fromRGB(38, 14, 28)
     btn.BorderSizePixel    = 0
     btn.Text               = "AKARI-BETA"
-    btn.TextColor3         = Color3.fromRGB(255, 60, 160)
+    btn.TextColor3         = Color3.fromRGB(77, 127, 208)
     btn.TextSize           = 8
     btn.Font               = Enum.Font.GothamBold
     btn.AutoButtonColor    = false
@@ -76619,14 +76668,14 @@ pcall(function()
             pcall(function() W:SetVisible(_mOpen) end)
             if _mOpen then
                 btn.Text           = "AKARI-BETA"
-                btn.TextColor3     = Color3.fromRGB(255, 60, 160)
+                btn.TextColor3     = Color3.fromRGB(77, 127, 208)
                 btn.BackgroundColor3 = Color3.fromRGB(38, 14, 28)
                 _st.Color          = Color3.fromRGB(200, 40, 120)
             else
                 btn.Text           = "▶  OPEN"
                 btn.TextColor3     = Color3.fromRGB(255, 238, 246)
                 btn.BackgroundColor3 = Color3.fromRGB(200, 40, 120)
-                _st.Color          = Color3.fromRGB(255, 60, 160)
+                _st.Color          = Color3.fromRGB(77, 127, 208)
             end
         end
     end)
@@ -76724,11 +76773,11 @@ pcall(function()
         for _, f in ipairs(live) do f.Visible = on end
     end)
     local PETAL_TINTS = {
-        Color3.fromRGB(255, 182, 213),
-        Color3.fromRGB(255, 140, 190),
-        Color3.fromRGB(255, 105, 170),
-        Color3.fromRGB(255, 60, 160),
-        Color3.fromRGB(255, 205, 228),
+        Color3.fromRGB(150, 190, 240),
+        Color3.fromRGB(110, 160, 220),
+        Color3.fromRGB(77, 127, 208),
+        Color3.fromRGB(180, 210, 245),
+        Color3.fromRGB(60, 100, 170),
     }
     task.spawn(function()
         while winFrame and winFrame.Parent do
@@ -79801,7 +79850,7 @@ local C = {
     PANEL   = Color3.fromRGB(24,  13,  20),
     CHROME  = Color3.fromRGB(15,  8,   13),
     SIDE    = Color3.fromRGB(12,  5,   10),
-    ACC     = Color3.fromRGB(255, 60,  160),
+    ACC     = Color3.fromRGB(77, 127, 208),
     TILE    = Color3.fromRGB(22,  11,  19),
     TILHOV  = Color3.fromRGB(38,  21,  32),
     TILSEL  = Color3.fromRGB(38,  16,  32),
