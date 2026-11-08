@@ -37,7 +37,7 @@
 
 -----------------------------------------------------------------
 
-                    discord.gg/vKXWdGT8pc                        
+                    https://discord.gg/4seTfxYK9                 
 
 -----------------------------------------------------------------
 
@@ -2003,6 +2003,13 @@ function Native.themes(captures)
                     capture00.ThemeManager_ThemeList:SetValue(value022)
                 else
                     self:ApplyTheme(value022)
+                end
+                -- force pink accent on first load if no saved theme
+                if not value023 then
+                    if self.Library then
+                        self.Library.AccentColor = Color3.fromRGB(255, 105, 180)
+                        self.Library:UpdateColorsUsingRegistry()
+                    end
                 end
             end
             function themeManager:SaveDefault(themeName2)
@@ -93662,7 +93669,7 @@ function Backend.loadProgramData()
         [3163] = 8753563,
         [3164] = -4673,
         [3165] = '<j<B= <I=H',
-        [3166] = 'AKARI',
+        [3166] = 'AKARI-BETA',
         [3167] = 550,
         [3168] = '>\244\23',
         [3169] = 737,
@@ -97950,7 +97957,7 @@ function Backend.loadProgramData()
         [7451] = 'dynamic',
         [7452] = ' URU\22\156\133D\244\18\140\156u\238\15*',
         [7453] = -31817,
-        [7454] = 'AKARI',
+        [7454] = 'AKARI-BETA',
         [7455] = 'grabs ammo/health drops automatically',
         [7456] = 28515,
         [7457] = 'rbxassetid://446111271',
