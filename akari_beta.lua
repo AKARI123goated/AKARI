@@ -70555,12 +70555,27 @@ wheelScrollX(TabList, function() return false end)
 			DcBtn.MouseEnter:Connect(function() dcHover = true; paint() end)
 			DcBtn.MouseLeave:Connect(function() dcHover = false; paint() end)
 			DcBtn.MouseButton1Click:Connect(function()
-				local f = setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set) or (syn and syn.write_clipboard)
-				local ok = f and pcall(f, DISCORD)
-				if ok then notif("Discord: invite copied to clipboard", 3, T.Accent, "info")
+				--  Open in the user's default browser. GuiService is the only
+				--  stock API that reaches the OS handler; executors that block it
+				--  fall back to the clipboard so the link is never lost.
+				local opened = false
+				pcall(function()
+					local gs = game:GetService("GuiService")
+					if gs and gs.OpenBrowserWindow then
+						gs:OpenBrowserWindow(DISCORD)
+						opened = true
+					end
+				end)
+				local copied = false
+				if not opened then
+					local f = setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set) or (syn and syn.write_clipboard)
+					copied = (f and pcall(f, DISCORD)) and true or false
+				end
+				if opened then notif("Discord: opening invite in your browser", 3, T.Accent, "info")
+				elseif copied then notif("Discord: invite copied to clipboard", 3, T.Accent, "info")
 				else notif("Discord: " .. DISCORD, 6, T.Accent, "info") end
 				dcBusy = true
-				DcBtn.Text = ok and "copied!" or short
+				DcBtn.Text = opened and "opened!" or (copied and "copied!" or short)
 				dcGlow.ImageTransparency = 0.25
 				paint()
 				task.delay(1.2, function()
