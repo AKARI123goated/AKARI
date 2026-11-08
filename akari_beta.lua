@@ -6,6 +6,44 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 local K = { connections = {}, cleanups = {}, destroyed = false }
 getgenv().KiciaRebuild = K
 
+-- ── Petal registry ────────────────────────────────────────────────────────────
+-- Declared at the very top so both window builders (which live in separate,
+-- possibly-deferred scopes) can find it. Petals are ON unless the "animations"
+-- toggle in Settings → Layout → effects has been switched off (FX.slide).
+PETALS = PETALS or { canvases = {}, hooks = {} }
+function PETALS.enabled()
+	if type(FX) == "table" and FX.slide ~= nil then
+		return FX.slide ~= false
+	end
+	--  Before the FX table is built, honour whatever the saved layout says.
+	local ok, saved = pcall(function()
+		local st = SETTINGS.LayoutFX[curStyle or "Default"]
+		return st and st.slide
+	end)
+	if ok and saved == false then return false end
+	return true
+end
+function PETALS.register(canvas)
+	PETALS.canvases[#PETALS.canvases + 1] = canvas
+	canvas.Visible = PETALS.enabled()
+	return canvas
+end
+function PETALS.onChanged(fn)
+	PETALS.hooks[#PETALS.hooks + 1] = fn
+end
+function PETALS.refresh()
+	local on = PETALS.enabled()
+	for i = #PETALS.canvases, 1, -1 do
+		local c = PETALS.canvases[i]
+		if c and c.Parent then
+			c.Visible = on
+		else
+			table.remove(PETALS.canvases, i)
+		end
+	end
+	for _, fn in ipairs(PETALS.hooks) do pcall(fn, on) end
+end
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16929,6 +16967,11 @@ local uiCorner2 = Instance.new("UICorner")
 uiCorner2.CornerRadius = UDim.new(0, 14)
 uiCorner2.Parent = frame3
 
+-- ── Petal registry ────────────────────────────────────────────────────────────
+-- Already declared at the top of the file; re-declaring the methods here keeps
+-- the Kicia window self-contained if it is ever loaded on its own.
+if not PETALS then PETALS = { canvases = {}, hooks = {} } end
+
 -- AKARI-BETA petal fall (clipped inside the window)
 do
 	local petalCanvas = Instance.new("Frame")
@@ -16997,8 +17040,10 @@ do
 	end
 	local rs = cloneref(game:GetService("RunService"))
 	local petalConn
+	PETALS.register(petalCanvas)
 	petalConn = rs.Heartbeat:Connect(function(dt)
 		if not petalCanvas.Parent then petalConn:Disconnect() return end
+		if not PETALS.enabled() then return end
 		for _, p in ipairs(petals) do
 			p.y = p.y + p.speed * dt
 			p.phase = p.phase + p.swaySpeed * dt
@@ -69285,6 +69330,25 @@ gbWideOf = setmetatable({}, weakK)
 gbIsRail = setmetatable({}, weakK)
 gbWideFix = setmetatable({}, weakK)
 skinners = {}
+
+--  Headings are authored lowercase throughout the source; this normalises every
+--  tab, section, category and groupbox title to Title Case at render time.
+--  Words containing a digit (3D) and existing all-caps acronyms (ESP, UC) keep
+--  their original casing.
+function titleCase(s)
+	if type(s) ~= "string" or s == "" then return s end
+	local out = {}
+	for word in string.gmatch(s, "%S+") do
+		local hasDigit = string.find(word, "%d") ~= nil
+		local isAcronym = #word > 1 and word == string.upper(word) and string.find(word, "%a") ~= nil
+		if hasDigit or isAcronym then
+			out[#out + 1] = word
+		else
+			out[#out + 1] = string.upper(string.sub(word, 1, 1)) .. string.lower(string.sub(word, 2))
+		end
+	end
+	return table.concat(out, " ")
+end
 LAYOUT_NAMES = { "Obsidian" }
 
 local LAYOUT_IDS = {
@@ -69347,6 +69411,8 @@ function runFX(y)
 		pcall(fn, y)
 		if y then y() end
 	end
+	--  Petals ride the same switch as the rest of the layout effects.
+	if PETALS then pcall(PETALS.refresh) end
 end
 
 local function colKey(c)
@@ -71059,7 +71125,455 @@ wheelScrollX(TabList, function() return false end)
 		tw(frame, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(0, 0) })
 	end
 
+	-- ── Block drag-reorder ────────────────────────────────────────────────────
+	-- Groupboxes are draggable by their header. Dropping one reorders it inside
+	-- the column, or moves it to the sibling column of the same tab section.
+	-- The resulting order is written to graviton/ui_layout.json, keyed by
+	-- "tab/section", and replayed once the whole window has been built.
+	-- Global on purpose: newGroupbox() lives outside this builder scope and
+	-- claims its box through REORDER.claim().
+	REORDER = {
+		secs = {}, colset = {}, pending = false, dirty = false, active = nil,
+		born = os.clock(),
+		pos = setmetatable({}, { __mode = "k" }),
+		slide = setmetatable({}, { __mode = "k" }),
+		attached = setmetatable({}, { __mode = "k" }),
+	}
+	do
+		local FILE = "graviton/ui_layout.json"
+		local SIDES = { "L", "R" }
+		local PAD, TOP, BOTTOM, INSET = 8, 1, 10, 3
+		local SLIDE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+		local function http()
+			local ok, hs = pcall(function() return game:GetService("HttpService") end)
+			return ok and hs or nil
+		end
+
+		local function kidsOf(sc)
+			local out = {}
+			if not sc then return out end
+			for _, ch in ipairs(sc:GetChildren()) do
+				if ch:IsA("GuiObject") then out[#out + 1] = ch end
+			end
+			table.sort(out, function(a, b)
+				local ao, bo = a.LayoutOrder or 0, b.LayoutOrder or 0
+				if ao ~= bo then return ao < bo end
+				return a.Name < b.Name
+			end)
+			return out
+		end
+
+		local function blocksOf(sc)
+			local out = {}
+			for _, ch in ipairs(kidsOf(sc)) do
+				if ch:GetAttribute("AkariBlock") then out[#out + 1] = ch end
+			end
+			return out
+		end
+
+		local function allBlocks(s)
+			local out = {}
+			for _, side in ipairs(SIDES) do
+				for _, b in ipairs(blocksOf(s[side])) do out[#out + 1] = b end
+			end
+			return out
+		end
+
+		local function findBox(s, title)
+			for _, b in ipairs(allBlocks(s)) do
+				if b:GetAttribute("AkariTitle") == title then return b end
+			end
+			return nil
+		end
+
+		local function slideTo(ch, target, animate)
+			local prev = REORDER.slide[ch]
+			if prev then pcall(function() prev:Cancel() end) end
+			if animate then
+				local t = TweenServ:Create(ch, SLIDE, { Position = target })
+				REORDER.slide[ch] = t
+				t:Play()
+			else
+				REORDER.slide[ch] = nil
+				ch.Position = target
+			end
+		end
+
+		--  Owns every child's Position and CanvasSize. The dragged box is skipped
+		--  so it can follow the cursor; every other box eases into its new slot.
+		function REORDER.layout(sc, animate)
+			if not sc or not sc.Parent then return end
+			--  The initial build drops dozens of boxes in a fraction of a second;
+			--  animating those would read as a slide-in, so only animate later.
+			if animate and os.clock() < REORDER.born + 1.0 then animate = false end
+			local POS = REORDER.pos[sc]
+			if not POS then POS = {}; REORDER.pos[sc] = POS end
+			local a = REORDER.active
+			local held = a and a.box
+			local y = TOP
+			local first = true
+			for _, ch in ipairs(kidsOf(sc)) do
+				if not first then y = y + PAD end
+				first = false
+				local h = ch.AbsoluteSize.Y
+				if h <= 1 then h = ch.Size.Y.Offset end
+				if h < 0 then h = 0 end
+				POS[ch] = { y = y, h = h }
+				if ch ~= held then
+					local sz = UDim2.new(1, -(INSET * 2), 0, 0)
+					if ch.Size ~= sz then ch.Size = sz end
+					slideTo(ch, UDim2.new(0, INSET, 0, math.floor(y)), animate)
+				end
+				y = y + h
+			end
+			sc.CanvasSize = UDim2.new(0, 0, 0, y + BOTTOM)
+		end
+
+		local function snapshot()
+			local a = REORDER.active
+			if not a then return end
+			local sc = a.box.Parent
+			if not sc then return end
+			local POS = REORDER.pos[sc]
+			a.order = {}
+			for _, ch in ipairs(kidsOf(sc)) do
+				local p = POS and POS[ch]
+				local top = p and p.y or ch.Position.Y.Offset
+				local h = p and p.h or ch.AbsoluteSize.Y
+				a.order[#a.order + 1] = { box = ch, top = top, bottom = top + h }
+			end
+		end
+
+		function REORDER.attachColumn(sc)
+			if not sc or REORDER.attached[sc] then return end
+			REORDER.attached[sc] = true
+			local function relayout() REORDER.layout(sc, true) end
+			sc.ChildAdded:Connect(function(ch)
+				if not ch:IsA("GuiObject") then return end
+				ch:GetPropertyChangedSignal("AbsoluteSize"):Connect(relayout)
+				task.defer(relayout)
+			end)
+			sc.ChildRemoved:Connect(function(ch)
+				if ch:IsA("GuiObject") then task.defer(relayout) end
+			end)
+			task.defer(function() REORDER.layout(sc, false) end)
+		end
+
+		local function save()
+			local hs = http()
+			if not hs or not writefile then return end
+			local out = {}
+			for key, s in pairs(REORDER.secs) do
+				local rec = {}
+				for _, side in ipairs(SIDES) do
+					local list = {}
+					for _, b in ipairs(blocksOf(s[side])) do
+						list[#list + 1] = tostring(b:GetAttribute("AkariTitle") or "")
+					end
+					rec[side] = list
+				end
+				out[key] = rec
+			end
+			pcall(function()
+				if isfolder and makefolder and not isfolder("graviton") then makefolder("graviton") end
+				writefile(FILE, hs:JSONEncode(out))
+			end)
+		end
+
+		local function load()
+			local hs = http()
+			if not hs or not isfile or not readfile then return nil end
+			local ok, data = pcall(function()
+				if not isfile(FILE) then return nil end
+				return hs:JSONDecode(readfile(FILE))
+			end)
+			if ok and type(data) == "table" then return data end
+			return nil
+		end
+
+		local function restore()
+			if REORDER.dirty then return end
+			local data = load()
+			if not data then return end
+			for key, rec in pairs(data) do
+				local s = REORDER.secs[key]
+				if s and type(rec) == "table" then
+					local claimed = {}
+					for _, side in ipairs(SIDES) do
+						local sc, titles = s[side], rec[side]
+						if sc and type(titles) == "table" then
+							for i, title in ipairs(titles) do
+								local b = findBox(s, tostring(title))
+								if b then
+									if b.Parent ~= sc then b.Parent = sc end
+									b.LayoutOrder = i * 10
+									claimed[b] = true
+								end
+							end
+						end
+					end
+					local tail = 100000
+					for _, side in ipairs(SIDES) do
+						for _, b in ipairs(blocksOf(s[side])) do
+							if not claimed[b] then
+								tail = tail + 10
+								b.LayoutOrder = tail
+							end
+						end
+						REORDER.layout(s[side], false)
+					end
+				end
+			end
+		end
+
+		local function scheduleRestore()
+			if REORDER.pending then return end
+			REORDER.pending = true
+			-- Two passes: the first lands after the main build, the second
+			-- catches groupboxes created by deferred/lazy tab construction.
+			task.delay(0.8, function() if not REORDER.dirty then pcall(restore) end end)
+			task.delay(2.5, function() if not REORDER.dirty then pcall(restore) end end)
+		end
+
+		local function shown(o)
+			local n = 0
+			while o and n < 64 do
+				if o:IsA("GuiObject") then
+					if not o.Visible then return false end
+				elseif o:IsA("LayerCollector") then
+					return o.Enabled ~= false
+				end
+				o = o.Parent
+				n = n + 1
+			end
+			return true
+		end
+
+		local function targetAt(x, y)
+			for _, s in pairs(REORDER.secs) do
+				for _, side in ipairs(SIDES) do
+					local sc = s[side]
+					if sc and sc.Parent and shown(sc) then
+						local ap, as = sc.AbsolutePosition, sc.AbsoluteSize
+						if x >= ap.X and x <= ap.X + as.X and y >= ap.Y and y <= ap.Y + as.Y then
+							return sc
+						end
+					end
+				end
+			end
+			return nil
+		end
+
+		--  Cross-column entry inserts at the cursor; same-column movement swaps.
+		local function insertAt(sc, dragged, cy)
+			local others = {}
+			for _, ch in ipairs(kidsOf(sc)) do
+				if ch ~= dragged then others[#others + 1] = ch end
+			end
+			local POS = REORDER.pos[sc] or {}
+			local idx = #others + 1
+			for i, ch in ipairs(others) do
+				local p = POS[ch]
+				local top = p and p.y or ch.Position.Y.Offset
+				local h = p and p.h or ch.AbsoluteSize.Y
+				if cy < top + h * 0.5 then idx = i break end
+			end
+			local n = 0
+			for i = 1, #others + 1 do
+				n = n + 1
+				if i == idx then
+					dragged.LayoutOrder = n
+				else
+					others[i < idx and i or (i - 1)].LayoutOrder = n
+				end
+			end
+		end
+
+		--  Re-seats LayoutOrder as 1..n in current visual order. Keeps the swap
+		--  deterministic even when two boxes were authored with the same order.
+		local function renumber(sc)
+			local i = 0
+			for _, ch in ipairs(kidsOf(sc)) do
+				i = i + 1
+				if ch.LayoutOrder ~= i then ch.LayoutOrder = i end
+			end
+		end
+
+		--  Swap semantics: the dragged block and the block it is dragged onto
+		--  exchange places — the other one takes the dragged block's old slot.
+		--  A swap fires only once the cursor passes the neighbour's midpoint, in
+		--  the direction of travel, so it reads as dragging rather than snapping.
+		local function move(x, y)
+			local a = REORDER.active
+			if not a or not a.box or not a.box.Parent then return end
+
+			local prev = a.box.Parent
+			local over = targetAt(x, y)
+			if over and over ~= prev then
+				a.box.Parent = over
+				REORDER.layout(prev, true)
+				insertAt(over, a.box, y - over.AbsolutePosition.Y + over.CanvasPosition.Y)
+				REORDER.layout(over, false)
+				snapshot()
+			end
+
+			local sc = a.box.Parent
+			if not sc then return end
+			local cy = y - sc.AbsolutePosition.Y + sc.CanvasPosition.Y
+			a.box.Position = UDim2.new(0, INSET, 0, math.floor(cy - a.grabY))
+
+			for _ = 1, 4 do
+				local selfE
+				for _, e in ipairs(a.order or {}) do
+					if e.box == a.box then selfE = e break end
+				end
+				if not selfE then break end
+				local selfMid = (selfE.top + selfE.bottom) * 0.5
+				local down = cy > selfMid
+				local pick, pickMid
+				for _, e in ipairs(a.order) do
+					if e.box ~= a.box and e.box.Parent == sc then
+						local mid = (e.top + e.bottom) * 0.5
+						if down then
+							if mid > selfMid and mid <= cy and (not pickMid or mid < pickMid) then
+								pick, pickMid = e, mid
+							end
+						else
+							if mid < selfMid and mid >= cy and (not pickMid or mid > pickMid) then
+								pick, pickMid = e, mid
+							end
+						end
+					end
+				end
+				if not pick then break end
+				local la, lb = a.box.LayoutOrder or 0, pick.box.LayoutOrder or 0
+				a.box.LayoutOrder = lb
+				pick.box.LayoutOrder = la
+				renumber(sc)
+				REORDER.layout(sc, true)
+				snapshot()
+			end
+		end
+
+		local function setLift(box, on)
+			local g = gbReg[box]
+			box.ZIndex = on and 40 or 11
+			if not g then return end
+			g.inner.ZIndex = on and 40 or 11
+			g.inner.BackgroundTransparency = on and 0.12 or 0
+			local edge = g.inner:FindFirstChildWhichIsA("UIStroke")
+			if edge then
+				edge.Color = on and T.Accent or T.Line
+				edge.Transparency = on and 0.1 or 0
+			end
+		end
+
+		local function start(box, input)
+			if REORDER.active then return end
+			local sc = box.Parent
+			if not sc then return end
+			REORDER.active = {
+				box = box,
+				grabY = input.Position.Y - box.AbsolutePosition.Y,
+				px = input.Position.X,
+				py = input.Position.Y,
+			}
+			REORDER.dirty = true
+			setLift(box, true)
+			REORDER.layout(sc, false)
+			snapshot()
+			task.spawn(function()
+				local rs = game:GetService("RunService")
+				while REORDER.active and REORDER.active.box == box do
+					local a = REORDER.active
+					local col = box.Parent
+					if col and a then
+						local ap, as = col.AbsolutePosition, col.AbsoluteSize
+						local edge = 30
+						local dy = 0
+						if a.py < ap.Y + edge then dy = -1
+						elseif a.py > ap.Y + as.Y - edge then dy = 1 end
+						if dy ~= 0 then
+							local maxY = math.max(col.CanvasSize.Y.Offset - as.Y, 0)
+							local ny = math.clamp(col.CanvasPosition.Y + dy * 9, 0, maxY)
+							if ny ~= col.CanvasPosition.Y then
+								col.CanvasPosition = Vector2.new(0, ny)
+								move(a.px, a.py)
+							end
+						end
+					end
+					rs.Heartbeat:Wait()
+				end
+			end)
+		end
+
+		local function finish()
+			local a = REORDER.active
+			if not a then return end
+			REORDER.active = nil
+			local box = a.box
+			if box and box.Parent then
+				setLift(box, false)
+				--  Let the released block ease into its slot instead of snapping.
+				REORDER.layout(box.Parent, true)
+			end
+			pcall(save)
+		end
+
+		function REORDER.registerSection(key, scL, scR)
+			if scL then scL:SetAttribute("AkariSide", "L") end
+			if scR then scR:SetAttribute("AkariSide", "R") end
+			REORDER.secs[key] = { L = scL, R = scR }
+			if scL then REORDER.colset[scL] = true end
+			if scR then REORDER.colset[scR] = true end
+			scheduleRestore()
+		end
+
+		function REORDER.claim(box, title)
+			--  Only blocks living in a registered L/R column are draggable; the
+			--  wide rail keeps its fixed order.
+			if not REORDER.colset[box.Parent] then return end
+			box:SetAttribute("AkariBlock", true)
+			box:SetAttribute("AkariTitle", tostring(title))
+			local g = gbReg[box]
+			if not g then return end
+			local head = create("TextButton", {
+				Name = "AkariDragHandle",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				AutoButtonColor = false,
+				Text = "",
+				Position = UDim2.new(0, 0, 0, 0),
+				Size = UDim2.new(1, 0, 0, g.headH),
+				ZIndex = 14,
+			}, g.inner)
+			head.InputBegan:Connect(DRAG.gate(head, function(i)
+				local t = i.UserInputType
+				if t ~= Enum.UserInputType.MouseButton1 and t ~= Enum.UserInputType.Touch then return end
+				start(box, i)
+				local mc, ec
+				mc = UIS.InputChanged:Connect(function(inp)
+					local a = REORDER.active
+					if not a or a.box ~= box then return end
+					if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
+						a.px, a.py = inp.Position.X, inp.Position.Y
+						move(inp.Position.X, inp.Position.Y)
+					end
+				end)
+				ec = UIS.InputEnded:Connect(function(inp)
+					if inp.UserInputType ~= Enum.UserInputType.MouseButton1 and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+					if mc then mc:Disconnect() end
+					if ec then ec:Disconnect() end
+					finish()
+				end)
+			end))
+			scheduleRestore()
+		end
+	end
+
 	local function newTab(tabTitle, isSettings, to)
+		tabTitle = titleCase(tabTitle)
 		tabCount = tabCount + 1
 
 		local tIcon, tCat = nil, win._cat
@@ -71236,6 +71750,7 @@ wheelScrollX(TabList, function() return false end)
 
 		local function newSection(sName, sIcon)
 			if type(sIcon) == "table" then sIcon = sIcon.Icon or sIcon.icon end
+			sName = titleCase(sName)
 			SubBox.Visible = true
 			SubRule.Visible = true
 			local SB = create("TextButton", {
@@ -71323,26 +71838,13 @@ wheelScrollX(TabList, function() return false end)
 					ZIndex = 10,
 					ClipsDescendants = true,
 				}, ColsWrap)
-				create("UIPadding", {
-					PaddingTop = UDim.new(0, 1),
-					PaddingBottom = UDim.new(0, 10),
-					PaddingLeft = UDim.new(0, COL_P),
-					PaddingRight = UDim.new(0, COL_P),
-				}, sc)
-				local list = create("UIListLayout", {
-					SortOrder = Enum.SortOrder.LayoutOrder,
-					Padding = UDim.new(0, 8),
-				}, sc)
-
-				local function resizeCol()
-					sc.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 14)
-				end
-				list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resizeCol)
-				resizeCol()
+				--  No UIListLayout on purpose: REORDER.layout() owns every child's
+				--  Position so reordering can ease between slots instead of snapping.
 				sc:GetPropertyChangedSignal("CanvasPosition"):Connect(closeAllDropdowns)
 
 				local rail, railRefresh = attachScrollbar(sc, ColsWrap, xScale + 0.5, xScale == 0 and 0 or -GUTTER / 2)
-				return sc, { sc = sc, list = list, rail = rail, refresh = railRefresh }
+				REORDER.attachColumn(sc)
+				return sc, { sc = sc, rail = rail, refresh = railRefresh }
 			end
 
 			local L, Lc = mkCol(0)
@@ -71372,6 +71874,7 @@ wheelScrollX(TabList, function() return false end)
 				btn = SB, lbl = SLbl, page = Page, L = L, R = R, wide = Wide, cols = { Lc, Rc },
 				select = selectThis, name = sName, tab = tabRec, icon = sIcon,
 			}
+			REORDER.registerSection(tostring(tabRec.title) .. "/" .. tostring(sName), L, R)
 			layoutDirty()
 			SB.MouseButton1Click:Connect(selectThis)
 			if not IS_MOBILE then
@@ -71419,7 +71922,7 @@ wheelScrollX(TabList, function() return false end)
 
 	win.AddTab = colonSafe(win, function(t, o) return newTab(t, nil, o) end)
 
-	win.AddCategory = colonSafe(win, function(text) win._cat = text ~= nil and tostring(text) or nil; layoutDirty(); return win end)
+	win.AddCategory = colonSafe(win, function(text) win._cat = text ~= nil and titleCase(tostring(text)) or nil; layoutDirty(); return win end)
 	win.AddSection = win.AddCategory
 	win.CreateTab = win.AddTab
 	win.Tab = win.AddTab
@@ -71523,6 +72026,7 @@ end
 
 local function newGroupbox(parent, title, order, gIcon)
 	if type(gIcon) == "table" and (gIcon.Icon ~= nil or gIcon.icon ~= nil) then gIcon = gIcon.Icon or gIcon.icon end
+	title = titleCase(title)
 	local box = create("Frame", {
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 0),
@@ -71640,6 +72144,7 @@ local function newGroupbox(parent, title, order, gIcon)
 	}, body)
 
 	gbReg[box] = { inner = inner, title = titleLbl, divider = divider, body = body, glows = { glowLine, glowHalo, glowBloom }, headH = HEAD_H, icon = gIcon }
+	if REORDER and REORDER.claim then REORDER.claim(box, title) end
 	layoutDirty()
 
 	local winGui = PopupGui
@@ -76202,9 +76707,22 @@ end)
 
 -- ── Petal fall (inside the Obsidian window) ───────────────────────────────────
 -- W.Main has ClipsDescendants = true, so petals are masked to the window bounds.
+-- Petals stay parented to the window itself — same parent, same ZIndex as before
+-- — so draw order is untouched and the "animations" toggle only flips Visible.
 pcall(function()
     local winFrame = W and W.Main
     if not winFrame then return end
+    local live = {}
+    local function prune()
+        for i = #live, 1, -1 do
+            local f = live[i]
+            if not (f and f.Parent) then table.remove(live, i) end
+        end
+    end
+    PETALS.onChanged(function(on)
+        prune()
+        for _, f in ipairs(live) do f.Visible = on end
+    end)
     local PETAL_TINTS = {
         Color3.fromRGB(255, 182, 213),
         Color3.fromRGB(255, 140, 190),
@@ -76215,55 +76733,59 @@ pcall(function()
     task.spawn(function()
         while winFrame and winFrame.Parent do
             task.wait(0.22 + math.random() * 0.42)
-            local tint = PETAL_TINTS[math.random(1, #PETAL_TINTS)]
-            local w = math.random(4, 8)
-            local h = math.floor(w * (1.7 + math.random() * 0.5))
-            local f = Instance.new("Frame")
-            f.BackgroundColor3  = tint
-            f.BackgroundTransparency = 0.05 + math.random() * 0.3
-            f.BorderSizePixel   = 0
-            f.Size              = UDim2.fromOffset(w, h)
-            f.Position          = UDim2.new(math.random(), 0, -0.06, 0)
-            f.ZIndex            = 50
-            f.Rotation          = math.random(0, 359)
-            Instance.new("UICorner", f).CornerRadius = UDim.new(1, 0)
-            --  Tapered petal: lit at the tip, saturated at the base, tip dissolving
-            local sheen = Instance.new("UIGradient")
-            sheen.Rotation = 90
-            sheen.Color = ColorSequence.new(Color3.fromRGB(255, 242, 249), tint)
-            sheen.Transparency = NumberSequence.new({
-                NumberSequenceKeypoint.new(0, 0.62),
-                NumberSequenceKeypoint.new(0.4, 0.12),
-                NumberSequenceKeypoint.new(1, 0.02),
-            })
-            sheen.Parent = f
-            f.Parent            = winFrame
-            local speed   = 0.05 + math.random() * 0.07
-            local sway    = 0.004 + math.random() * 0.012
-            local spin    = (math.random() < 0.5 and -1 or 1) * (12 + math.random() * 26)
-            local flipSp  = 1.2 + math.random() * 1.4
-            local startX  = f.Position.X.Scale
-            local elapsed = 0
-            local flip    = math.random() * 6.283185307179586
-            local rot     = f.Rotation
-            task.spawn(function()
-                local y = -0.06
-                local x = startX
-                while f and f.Parent do
-                    local dt = task.wait()
-                    elapsed  = elapsed + dt
-                    flip     = flip + flipSp * dt
-                    y = y + speed * dt
-                    x = startX + math.sin(elapsed * 1.2) * sway
-                    rot = rot + spin * dt
-                    --  Width oscillation reads as the petal turning edge-on in the air
-                    local face = 0.22 + 0.78 * math.abs(math.cos(flip))
-                    f.Size = UDim2.fromOffset(math.max(1, math.floor(w * face + 0.5)), h)
-                    f.Position = UDim2.new(x, 0, y, 0)
-                    f.Rotation = rot
-                    if y > 1.08 then f:Destroy() break end
-                end
-            end)
+            prune()
+            if PETALS.enabled() then
+                local tint = PETAL_TINTS[math.random(1, #PETAL_TINTS)]
+                local w = math.random(4, 8)
+                local h = math.floor(w * (1.7 + math.random() * 0.5))
+                local f = Instance.new("Frame")
+                f.BackgroundColor3  = tint
+                f.BackgroundTransparency = 0.05 + math.random() * 0.3
+                f.BorderSizePixel   = 0
+                f.Size              = UDim2.fromOffset(w, h)
+                f.Position          = UDim2.new(math.random(), 0, -0.06, 0)
+                f.ZIndex            = 50
+                f.Rotation          = math.random(0, 359)
+                Instance.new("UICorner", f).CornerRadius = UDim.new(1, 0)
+                --  Tapered petal: lit at the tip, saturated at the base, tip dissolving
+                local sheen = Instance.new("UIGradient")
+                sheen.Rotation = 90
+                sheen.Color = ColorSequence.new(Color3.fromRGB(255, 242, 249), tint)
+                sheen.Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 0.62),
+                    NumberSequenceKeypoint.new(0.4, 0.12),
+                    NumberSequenceKeypoint.new(1, 0.02),
+                })
+                sheen.Parent = f
+                f.Parent            = winFrame
+                live[#live + 1]     = f
+                local speed   = 0.05 + math.random() * 0.07
+                local sway    = 0.004 + math.random() * 0.012
+                local spin    = (math.random() < 0.5 and -1 or 1) * (12 + math.random() * 26)
+                local flipSp  = 1.2 + math.random() * 1.4
+                local startX  = f.Position.X.Scale
+                local elapsed = 0
+                local flip    = math.random() * 6.283185307179586
+                local rot     = f.Rotation
+                task.spawn(function()
+                    local y = -0.06
+                    local x = startX
+                    while f and f.Parent do
+                        local dt = task.wait()
+                        elapsed  = elapsed + dt
+                        flip     = flip + flipSp * dt
+                        y = y + speed * dt
+                        x = startX + math.sin(elapsed * 1.2) * sway
+                        rot = rot + spin * dt
+                        --  Width oscillation reads as the petal turning edge-on in the air
+                        local face = 0.22 + 0.78 * math.abs(math.cos(flip))
+                        f.Size = UDim2.fromOffset(math.max(1, math.floor(w * face + 0.5)), h)
+                        f.Position = UDim2.new(x, 0, y, 0)
+                        f.Rotation = rot
+                        if y > 1.08 then f:Destroy() break end
+                    end
+                end)
+            end
         end
     end)
 end)
