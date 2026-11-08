@@ -16951,22 +16951,26 @@ do
 	local petals = {}
 	local function makePetal(randomY)
 		local f = Instance.new("Frame")
-		f.BackgroundColor3 = PETAL_TINTS[math.random(1, #PETAL_TINTS)]
+		local tint = PETAL_TINTS[math.random(1, #PETAL_TINTS)]
+		f.BackgroundColor3 = tint
 		f.BorderSizePixel = 0
 		local w = math.random(5, 9)
-		f.Size = UDim2.fromOffset(w, w + math.random(3, 6))
-		f.BackgroundTransparency = math.random(5, 35) / 100
+		local h = math.floor(w * (1.7 + math.random() * 0.5))
+		f.Size = UDim2.fromOffset(w, h)
+		f.BackgroundTransparency = math.random(5, 30) / 100
 		f.ZIndex = 2
 		f.Rotation = math.random(0, 359)
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(1, 0)
 		corner.Parent = f
+		--  Tapered petal: lit at the tip, saturated at the base, tip dissolving
 		local sheen = Instance.new("UIGradient")
-		sheen.Rotation = math.random(0, 359)
-		sheen.Color = ColorSequence.new(Color3.fromRGB(255, 240, 247), f.BackgroundColor3)
+		sheen.Rotation = 90
+		sheen.Color = ColorSequence.new(Color3.fromRGB(255, 242, 249), tint)
 		sheen.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.15),
-			NumberSequenceKeypoint.new(1, 0.75),
+			NumberSequenceKeypoint.new(0, 0.62),
+			NumberSequenceKeypoint.new(0.4, 0.12),
+			NumberSequenceKeypoint.new(1, 0.02),
 		})
 		sheen.Parent = f
 		local x = math.random(0, 1000) / 1000
@@ -16976,11 +16980,14 @@ do
 		return {
 			frame = f,
 			x = x, y = y,
+			w = w, h = h,
 			speed = math.random(40, 110) / 1000,
 			drift = math.random(-3, 3) / 1000,
 			sway = math.random(4, 14) / 1000,
 			swaySpeed = math.random(60, 140) / 100,
 			spin = (math.random() < 0.5 and -1 or 1) * math.random(8, 26),
+			flip = math.random() * 6.283185307179586,
+			flipSpeed = math.random(120, 260) / 100,
 			phase = math.random() * 6.283185307179586,
 			rot = f.Rotation,
 		}
@@ -16995,6 +17002,7 @@ do
 		for _, p in ipairs(petals) do
 			p.y = p.y + p.speed * dt
 			p.phase = p.phase + p.swaySpeed * dt
+			p.flip = p.flip + p.flipSpeed * dt
 			p.x = p.x + (p.drift + math.sin(p.phase) * p.sway) * dt
 			p.rot = p.rot + p.spin * dt
 			if p.x < -0.05 then p.x = 1.05
@@ -17003,6 +17011,9 @@ do
 				p.y = math.random(-14, -2) / 100
 				p.x = math.random(0, 1000) / 1000
 			end
+			--  Width oscillation reads as the petal turning edge-on in the air
+			local face = 0.22 + 0.78 * math.abs(math.cos(p.flip))
+			p.frame.Size = UDim2.fromOffset(math.max(1, math.floor(p.w * face + 0.5)), p.h)
 			p.frame.Position = UDim2.fromScale(p.x, p.y)
 			p.frame.Rotation = p.rot
 		end
@@ -76191,29 +76202,34 @@ pcall(function()
             task.wait(0.22 + math.random() * 0.42)
             local tint = PETAL_TINTS[math.random(1, #PETAL_TINTS)]
             local w = math.random(4, 8)
+            local h = math.floor(w * (1.7 + math.random() * 0.5))
             local f = Instance.new("Frame")
             f.BackgroundColor3  = tint
-            f.BackgroundTransparency = 0.05 + math.random() * 0.35
+            f.BackgroundTransparency = 0.05 + math.random() * 0.3
             f.BorderSizePixel   = 0
-            f.Size              = UDim2.fromOffset(w, w + math.random(3, 6))
+            f.Size              = UDim2.fromOffset(w, h)
             f.Position          = UDim2.new(math.random(), 0, -0.06, 0)
             f.ZIndex            = 50
             f.Rotation          = math.random(0, 359)
             Instance.new("UICorner", f).CornerRadius = UDim.new(1, 0)
+            --  Tapered petal: lit at the tip, saturated at the base, tip dissolving
             local sheen = Instance.new("UIGradient")
-            sheen.Rotation = math.random(0, 359)
-            sheen.Color = ColorSequence.new(Color3.fromRGB(255, 240, 247), tint)
+            sheen.Rotation = 90
+            sheen.Color = ColorSequence.new(Color3.fromRGB(255, 242, 249), tint)
             sheen.Transparency = NumberSequence.new({
-                NumberSequenceKeypoint.new(0, 0.15),
-                NumberSequenceKeypoint.new(1, 0.75),
+                NumberSequenceKeypoint.new(0, 0.62),
+                NumberSequenceKeypoint.new(0.4, 0.12),
+                NumberSequenceKeypoint.new(1, 0.02),
             })
             sheen.Parent = f
             f.Parent            = winFrame
             local speed   = 0.05 + math.random() * 0.07
             local sway    = 0.004 + math.random() * 0.012
             local spin    = (math.random() < 0.5 and -1 or 1) * (12 + math.random() * 26)
+            local flipSp  = 1.2 + math.random() * 1.4
             local startX  = f.Position.X.Scale
             local elapsed = 0
+            local flip    = math.random() * 6.283185307179586
             local rot     = f.Rotation
             task.spawn(function()
                 local y = -0.06
@@ -76221,9 +76237,13 @@ pcall(function()
                 while f and f.Parent do
                     local dt = task.wait()
                     elapsed  = elapsed + dt
+                    flip     = flip + flipSp * dt
                     y = y + speed * dt
                     x = startX + math.sin(elapsed * 1.2) * sway
                     rot = rot + spin * dt
+                    --  Width oscillation reads as the petal turning edge-on in the air
+                    local face = 0.22 + 0.78 * math.abs(math.cos(flip))
+                    f.Size = UDim2.fromOffset(math.max(1, math.floor(w * face + 0.5)), h)
                     f.Position = UDim2.new(x, 0, y, 0)
                     f.Rotation = rot
                     if y > 1.08 then f:Destroy() break end
